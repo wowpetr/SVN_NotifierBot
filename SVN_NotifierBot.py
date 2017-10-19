@@ -4,7 +4,7 @@
 # SVN Notifier Bot monitors Apache Subversion (SVN) repositories
 # and sends messages when new commits are made.
 #
-# Copyright (c) 2017 ТБ.Бюджет
+# Copyright (c) 2017 Petr Losev
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
