@@ -24,16 +24,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+import os
+import pickle
 import svn.remote
 from telegram.ext import Updater, CommandHandler
 
 
 # Global constants
 THIS_BOT_TOKEN = ''
-SVN_CHECK_INTERVAL = 900  # in seconds
+SVN_CHECK_INTERVAL = 3600  # in seconds
 SVN_MSG_LIMIT = 10
 N_LAST_COMMITS_AT_START = 1  # how many old log messages are shown when /start
+DATA_DIR = './reg_data'
 
 
 def check_svn_job(bot, job):
@@ -129,9 +131,34 @@ def list_(bot, update):
         update.message.reply_text(repos_list)
 
 
+def save_(bot, update):
+    chat_id = update.message.chat_id
+    chat_id_file = DATA_DIR + '/' + str(chat_id)
+
+    if chat_id in bot.reg_data:
+        repos_list = bot.reg_data[chat_id]
+        if not os.path.isdir(DATA_DIR):
+            os.mkdir(DATA_DIR)
+        f = open(chat_id_file, 'wb')
+        pickle.dump(repos_list, f)
+        f.close()
+        update.message.reply_text('All registered repositories have been successfully saved.')
+    else:
+        update.message.reply_text('There are not any repositories registered.')
+
+
 def main():
     updater = Updater(THIS_BOT_TOKEN)
     updater.bot.reg_data = dict()
+
+    # Restoring registered data from files
+    if os.path.isdir(DATA_DIR):
+        for fn in os.listdir(DATA_DIR):
+            chat_id_file = DATA_DIR + '/' + fn
+            if os.path.isfile(chat_id_file):
+                f = open(chat_id_file, 'rb')
+                updater.bot.reg_data[int(fn)] = pickle.load(f)
+                f.close()
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -140,6 +167,7 @@ def main():
     dp.add_handler(CommandHandler("start", start, pass_job_queue=True))
     dp.add_handler(CommandHandler("add", add, pass_args=True))
     dp.add_handler(CommandHandler("list", list_))
+    dp.add_handler(CommandHandler("save", save_))
 
     # Start the Bot
     updater.start_polling()
@@ -148,6 +176,17 @@ def main():
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
     updater.idle()
+
+    # Saving registered data to files
+
+    if not os.path.isdir(DATA_DIR):
+        os.mkdir(DATA_DIR)
+
+    for (chat_id, repos_list) in updater.bot.reg_data.items():
+        chat_id_file = DATA_DIR + '/' + str(chat_id)
+        f = open(chat_id_file, 'wb')
+        pickle.dump(repos_list, f)
+        f.close()
 
 
 if __name__ == '__main__':
